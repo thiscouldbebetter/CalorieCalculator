@@ -6,8 +6,8 @@
 	<h3>Calorie Calculator</h3>
 
 	<p>
-		Enter a list of foods in the specified format,
-		for example, "pasta, 6 oz.", then click the Calculate button
+		Add items from a list of foods to a meal,
+		set the amounts consumed, then click the Calculate button
 		to see the total amount of dietary Calories (kilocalories)
 		contained in the meal.
 	</p>
@@ -21,12 +21,12 @@
 	</div>
 
 	<div>
-		<button onclick="buttonFoodDefinitionAdd_Clicked()">Add a New Food with:</button>
+		<button onclick="buttonFoodDefinitionAdd_Clicked()">Add New Food:</button>
 		<label>Name:</label>
-		<input id="inputFoodDefinitionName"></input>
-		<label>Kilocalories:</label>
-		<input id="inputFoodDefinitionKilocalories" type="number"></input>
-		<label>per</label>
+		<input id="inputFoodDefinitionName" style="width:128px;"></input>
+		<label>@</label>
+		<input id="inputFoodDefinitionKilocalories" type="number" style="width:64px;"></input>
+		<label>kcal/</label>
 		<select id="selectFoodDefinitionUnits"></select>
 	</div>
 
@@ -71,7 +71,7 @@
 	</div>
 
 	<div>
-		<textarea id="textareaCalorieCountsCalculated" cols="40" rows="10"></textarea>
+		<textarea id="textareaCalorieCountsCalculated" cols="60" rows="10"></textarea>
 	</div>
 
 </div>
@@ -556,7 +556,7 @@ class FoodTypeAndAmount
 		returnValue +=
 			" @ " + kilocaloriesPerUnit
 			+ " kcal/" + this.foodDefinition.unit.abbreviation
-			+ " = " + totalCalories + "kcal";
+			+ " = " + totalCalories + " kcal";
 
 		return returnValue;
 	}
