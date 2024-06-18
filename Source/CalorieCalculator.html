@@ -1,0 +1,660 @@
+<html>
+<body onload="body_Loaded()">
+
+<div id="divUi">
+
+	<h3>Calorie Calculator</h3>
+
+	<p>
+		Enter a list of foods in the specified format,
+		for example, "pasta, 6 oz.", then click the Calculate button
+		to see the total amount of dietary Calories (kilocalories)
+		contained in the meal.
+	</p>
+
+	<div>
+		<label>Foods to Choose from:</label>
+		<button onclick="buttonFoodsToChooseFromDemo_Clicked()">Load Demo List</button>
+		<label>Load from File:</label>
+		<input type="file" onchange="inputFile_Changed(this)"></input>
+		<button onclick="buttonFoodsToChooseFromSave_Clicked()">Save</button>
+	</div>
+
+	<div>
+		<button onclick="buttonFoodDefinitionAdd_Clicked()">Add a New Food with:</button>
+		<label>Name:</label>
+		<input id="inputFoodDefinitionName"></input>
+		<label>Kilocalories:</label>
+		<input id="inputFoodDefinitionKilocalories" type="number"></input>
+		<label>per</label>
+		<select id="selectFoodDefinitionUnits"></select>
+	</div>
+
+	<div>
+		<select id="selectFoodsToChooseFrom" size="10"></select>
+	</div>
+
+
+	<div>
+		<button onclick="buttonFoodSelectedAddToMeal_Clicked()">Add Selected Food to Meal</button>
+	</div>
+
+	<div>
+		<label>Food Types and Amounts in Meal:</label>
+		<button onclick="buttonClear_Clicked()">Clear</button>
+	</div>
+
+	<div>
+		<select
+			id="selectFoodTypesAndAmounts"
+			size="10"
+			onchange="selectFoodTypesAndAmounts_Changed(this)"
+		></select>
+	</div>
+
+	<div>
+		<label>Number of Units of Food Selected:</label>
+		<input
+			id="inputNumberOfUnitsOfFoodSelected"
+			type="number"
+			min="0"
+			onchange="inputNumberOfUnitsOfFoodSelected_Changed(this)"
+		></input>
+		<button onclick="buttonNumberOfUnitsOfFoodSelectedIncrement_Clicked()">+</button>
+		<button onclick="buttonNumberOfUnitsOfFoodSelectedDecrement_Clicked()">-</button>
+	</div>
+
+	<button onclick="buttonCalculate_Clicked()">Calculate</button>
+
+	<div>
+		<label>Calorie Counts Calculated:</label>
+	</div>
+
+	<div>
+		<textarea id="textareaCalorieCountsCalculated" cols="40" rows="10"></textarea>
+	</div>
+
+</div>
+
+<script type="text/javascript">
+
+// UI event handlers.
+
+function body_Loaded(selectFoodDefinitionUnits)
+{
+	var d = document;
+	var selectFoodDefinitionUnits =
+		d.getElementById("selectFoodDefinitionUnits");
+	selectFoodDefinitionUnits.innerHTML = "";
+
+	var optionNone = d.createElement("option");
+	optionNone.innerHTML = "-";
+	selectFoodDefinitionUnits.appendChild(optionNone);
+
+	var units = MeasurementUnit.Instances()._All;
+	var unitsAsOptions = units.map(x => x.toDomElementOption() );
+	unitsAsOptions.forEach(x => selectFoodDefinitionUnits.appendChild(x) );
+}
+
+function buttonCalculate_Clicked()
+{
+	var d = document;
+
+	var newline = "\n";
+
+	var foodDefinitions = foodDefinitionsGetFromDocument(d);
+
+	var selectFoodTypesAndAmounts =
+		d.getElementById("selectFoodTypesAndAmounts");
+	var foodTypesAndAmountsAsOptions =
+		selectFoodTypesAndAmounts.options;
+	var foodTypesAndAmountsAsLines = [];
+
+	for (var i = 0; i < foodTypesAndAmountsAsOptions.length; i++)
+	{
+		var foodTypeAndAmountAsOption = foodTypesAndAmountsAsOptions[i];
+		var foodTypeAndAmountAsLine = foodTypeAndAmountAsOption.innerHTML;
+		foodTypesAndAmountsAsLines.push(foodTypeAndAmountAsLine);
+	}
+
+	var foodTypesAndAmounts =
+		foodTypesAndAmountsAsLines.map
+		(
+			x => FoodTypeAndAmount.fromStringAndFoodDefinitions(x, foodDefinitions)
+		);
+
+	var meal = new Meal(foodTypesAndAmounts);
+
+	var calorieCalculator = new CalorieCalculator
+	(
+		foodDefinitions,
+		meal
+	);
+
+	var mealNutritionalSummary = meal.toTextNutritionalSummary();
+
+	var textareaCalorieCountsCalculated =
+		d.getElementById("textareaCalorieCountsCalculated");
+	textareaCalorieCountsCalculated.value = mealNutritionalSummary;
+}
+
+function buttonClear_Clicked()
+{
+	var d = document;
+	var selectFoodsTypesAndAmounts =
+		d.getElementById("selectFoodsTypesAndAmounts");
+	selectFoodsTypesAndAmounts.innerHTML = "";
+}
+
+function buttonFoodDefinitionAdd_Clicked()
+{
+	var d = document;
+	var inputFoodDefinitionName =
+		d.getElementById("inputFoodDefinitionName");
+	var inputFoodDefinitionKilocalories =
+		d.getElementById("inputFoodDefinitionKilocalories");
+	var selectFoodDefinitionUnits =
+		d.getElementById("selectFoodDefinitionUnits");
+
+	var name = inputFoodDefinitionName.value;
+	var kilocaloriesPerUnit = parseFloat(inputFoodDefinitionKilocalories.value);
+	var unitAbbreviation = selectFoodDefinitionUnits.value;
+	var unit = MeasurementUnit.byAbbreviation(unitAbbreviation);
+
+	var isValid = 
+		name != ""
+		&& kilocaloriesPerUnit >= 0
+		&& unit != null;
+
+	if (isValid == false)
+	{
+		alert("All the necessary data for the new food definition was not specified, so it could not be added.");
+	}
+	else
+	{
+		var foodDefinition = new FoodDefinition(name, kilocaloriesPerUnit, unit);
+
+		var selectFoodsToChooseFrom =
+			d.getElementById("selectFoodsToChooseFrom");
+		var foodDefinitionAsOption = foodDefinition.toDomElementOption();
+		selectFoodsToChooseFrom.appendChild(foodDefinitionAsOption);
+	}
+}
+
+function buttonFoodSelectedAddToMeal_Clicked()
+{
+	var d = document;
+	var selectFoodsToChooseFrom =
+		d.getElementById("selectFoodsToChooseFrom");
+	var foodSelectedName = selectFoodsToChooseFrom.value;
+	if (foodSelectedName == "")
+	{
+		alert("No food is selected!");
+	}
+	else
+	{
+		var foodSelectedDefinitionAsString =
+			selectFoodsToChooseFrom.selectedOptions[0].innerHTML;
+		var foodSelectedDefinition =
+			FoodDefinition.fromString(foodSelectedDefinitionAsString);
+
+		var foodTypeAndAmount =
+			new FoodTypeAndAmount(foodSelectedDefinition, 0);
+
+		var selectFoodTypesAndAmounts =
+			d.getElementById("selectFoodTypesAndAmounts");
+		var foodTypeAndAmountAsOption =
+			foodTypeAndAmount.toDomElementOption();
+		selectFoodTypesAndAmounts.appendChild(foodTypeAndAmountAsOption);
+	}
+}
+
+function buttonFoodsToChooseFromDemo_Clicked()
+{
+	var foodDefinitions = FoodDefinition.Instances()._All;
+
+	var d = document;
+	var selectFoodsToChooseFrom =
+		d.getElementById("selectFoodsToChooseFrom");
+	selectFoodsToChooseFrom.innerHTML = "";
+
+	var foodDefinitionsAsOptions =
+		foodDefinitions.map(x => foodDefinitionToOption(x));
+	foodDefinitionsAsOptions.forEach
+	(
+		x => selectFoodsToChooseFrom.appendChild(x)
+	);
+}
+
+function buttonFoodsToChooseFromSave_Clicked()
+{
+	alert("Not yet implemented!");
+
+	var d = document;
+
+	var foodDefinitions = foodDefinitionsGetFromDocument(d);
+
+	var foodDefinitionsAsLines = foodDefinitions.map(x => x.toString() );
+
+	var newline = "\n";
+	var foodDefinitionsAsText = foodDefinitionsAsLines.join(newline);
+
+	var foodDefinitionsAsBlob = new Blob( [ foodDefinitionsAsText ], "text/plain");
+	var foodDefinitionsAsUrl = window.URL.createObjectURL(foodDefinitionsAsBlob);
+
+	var link = d.createElement("a");
+	link.href = foodDefinitionsAsUrl;
+
+	link.download = "Foods.txt";
+	link.click();
+}
+
+function buttonNumberOfUnitsOfFoodSelectedDecrement_Clicked()
+{
+	var d = document;
+	var inputNumberOfUnitsOfFoodSelected =
+		d.getElementById("inputNumberOfUnitsOfFoodSelected");
+	var numberOfUnitsOfFoodSelected =
+		parseFloat(inputNumberOfUnitsOfFoodSelected.value);
+	numberOfUnitsOfFoodSelected--;
+	inputNumberOfUnitsOfFoodSelected.value = numberOfUnitsOfFoodSelected;
+	inputNumberOfUnitsOfFoodSelected_Changed(inputNumberOfUnitsOfFoodSelected);
+}
+
+function buttonNumberOfUnitsOfFoodSelectedIncrement_Clicked()
+{
+	var d = document;
+	var inputNumberOfUnitsOfFoodSelected =
+		d.getElementById("inputNumberOfUnitsOfFoodSelected");
+	var numberOfUnitsOfFoodSelected =
+		parseFloat(inputNumberOfUnitsOfFoodSelected.value);
+	numberOfUnitsOfFoodSelected++;
+	inputNumberOfUnitsOfFoodSelected.value = numberOfUnitsOfFoodSelected;
+	inputNumberOfUnitsOfFoodSelected_Changed(inputNumberOfUnitsOfFoodSelected);
+}
+
+function foodDefinitionToOption(foodDefinition)
+{
+	var d = document;
+	var foodDefinitionAsOption = d.createElement("option");
+	foodDefinitionAsOption.value = foodDefinition.name;
+	foodDefinitionAsOption.innerHTML = foodDefinition.toString();
+	return foodDefinitionAsOption;
+}
+
+function foodDefinitionsGetFromDocument(d)
+{
+	var selectFoodsToChooseFrom =
+		d.getElementById("selectFoodsToChooseFrom");
+	var foodDefinitionsAsOptions = selectFoodsToChooseFrom.options;
+
+	var foodDefinitionsAsLines = [];
+	for (var i = 0; i < foodDefinitionsAsOptions.length; i++)
+	{
+		var foodDefinitionAsOption = foodDefinitionsAsOptions[i];
+		foodDefinitionsAsLines.push(foodDefinitionAsOption.innerHTML);
+	}
+
+	var foodDefinitions = foodDefinitionsAsLines.map
+	(
+		x => FoodDefinition.fromString(x)
+	);
+
+	return foodDefinitions;
+}
+
+function inputFile_Changed(inputFile)
+{
+	alert("Not yet implemented!");
+
+	var file = inputFile.files[0];
+	if (file != null)
+	{
+		var fileReader = new FileReader(file);
+		fileReader.onload = (event) =>
+		{
+			var foodDefinitionsAsText = event.target.result;
+			var newline = "\n";
+			var foodDefinitionsAsLines = foodDefinitionsAsText.split(newline);
+			var foodDefinitions =
+				foodDefinitionsAsLines.map(x => FoodDefinition.fromString(x) );
+
+			var d = document;
+			var selectFoodsToChooseFrom =
+				d.getElementById("selectFoodsToChooseFrom");
+			var foodDefinitionsAsOptions =
+				foodDefinitions.map(x => foodDefinitionToOption(x) );
+
+			foodDefinitionsAsOptions.forEach
+			(
+				x => selectFoodsToChooseFrom.appendChild(x)
+			);
+		}
+		fileReader.readAsText();
+	}
+}
+
+function inputNumberOfUnitsOfFoodSelected_Changed(inputNumberOfUnitsOfFoodSelected)
+{
+	var d = document;
+
+	var selectFoodTypesAndAmounts =
+		d.getElementById("selectFoodTypesAndAmounts");
+	var optionSelected =
+		selectFoodTypesAndAmounts.selectedOptions[0];
+
+	if (optionSelected != null)
+	{
+		var foodTypeAndAmountSelectedAsString =
+			optionSelected.innerHTML;
+
+		var foodDefinitions = foodDefinitionsGetFromDocument(d);
+
+		var foodTypeAndAmountSelected =
+			FoodTypeAndAmount.fromStringAndFoodDefinitions
+			(
+				foodTypeAndAmountSelectedAsString,
+				foodDefinitions
+			);
+		var valueToChangeTo = inputNumberOfUnitsOfFoodSelected.value; 
+		foodTypeAndAmountSelected.units = parseFloat(valueToChangeTo);
+		foodTypeAndAmountSelectedAsString =
+			foodTypeAndAmountSelected.toString();
+
+		optionSelected.innerHTML = foodTypeAndAmountSelectedAsString;
+	}
+
+}
+
+function selectFoodTypesAndAmounts_Changed(selectFoodTypesAndAmounts)
+{
+	var foodTypeAndAmountSelectedAsOption =
+		selectFoodTypesAndAmounts.selectedOptions[0];
+	if (foodTypeAndAmountSelectedAsOption != null)
+	{
+		var d = document;
+
+		var foodDefinitions = foodDefinitionsGetFromDocument(d);
+
+		var foodTypeAndAmountSelectedAsString = 
+			foodTypeAndAmountSelectedAsOption.innerHTML;
+		var foodTypeAndAmountSelected =
+			FoodTypeAndAmount.fromStringAndFoodDefinitions
+			(
+				foodTypeAndAmountSelectedAsString, foodDefinitions
+			);
+
+		var inputNumberOfUnitsOfFoodSelected =
+			d.getElementById("inputNumberOfUnitsOfFoodSelected");
+		var numberOfUnits = parseInt(foodTypeAndAmountSelected.units);
+		inputNumberOfUnitsOfFoodSelected.value = numberOfUnits;
+	}
+}
+
+// Classes.
+
+class CalorieCalculator
+{
+	constructor(foodDefinitions, meal)
+	{
+		this.foodDefinitions = foodDefinitions;
+		this.meal = meal || new Meal();
+	}
+}
+
+class FoodDefinition
+{
+	constructor(name, kilocaloriesPerUnit, unit, unitsPerServing)
+	{
+		this.name = name;
+		this.kilocaloriesPerUnit = kilocaloriesPerUnit;
+		this.unit = unit;
+		this.unitsPerServing = unitsPerServing;
+	}
+
+	static Instances()
+	{
+		if (this._instances == null)
+		{
+			this._instances = new FoodDefinition_Instances();
+		}
+
+		return this._instances;
+	}
+
+	// DOM.
+
+	toDomElementOption()
+	{
+		var d = document;
+		var option = d.createElement("option");
+		option.value = this.name;
+		option.innerHTML = this.toString();
+		return option;
+	}
+
+	// Serialization.
+
+	static fromString(foodDefinitionAsString)
+	{
+		var nameAndRemainder = foodDefinitionAsString.split(", ");
+		var name = nameAndRemainder[0];
+		var remainder = nameAndRemainder[1];
+		var kilocaloriesPerUnitAndUnitAbbreviation =
+			remainder.split("/");
+		var kilocaloriesPerUnit =
+			parseInt(kilocaloriesPerUnitAndUnitAbbreviation[0].split(" ")[0]);
+		var unitAbbreviation = kilocaloriesPerUnitAndUnitAbbreviation[1];
+		var unit = MeasurementUnit.byAbbreviation(unitAbbreviation);
+		var returnValue =
+			new FoodDefinition(name, kilocaloriesPerUnit, unit);
+		return returnValue;
+	}
+
+	toString()
+	{
+		var returnValue =
+			this.name + ", "
+			+ this.kilocaloriesPerUnit
+			+ " kcal/" + this.unit.abbreviation;
+
+		return returnValue;
+	}
+}
+
+class FoodDefinition_Instances
+{
+	constructor()
+	{
+		var fd = (n, kcpu, u, ups) => new FoodDefinition(n, kcpu, u, ups);
+
+		var units = MeasurementUnit.Instances();
+
+		this.Boullion_Chicken 	= fd("chicken boullion", 	5, 		units.Teaspoon, 	1);
+		this.Granola_Bar 		= fd("granola bar", 		105, 	units.Ounce, 		1.2);
+		this.Oil_Olive 			= fd("olive oil", 			120, 	units.Tablespoon, 	1);
+		this.Pasta 				= fd("pasta", 				100, 	units.Ounce, 		2);
+		this.Yogurt 			= fd("yogurt", 				12, 	units.Ounce, 		6);
+
+		this._All =
+		[
+			this.Boullion_Chicken,
+			this.Granola_Bar,
+			this.Oil_Olive,
+			this.Pasta,
+			this.Yogurt
+		];
+	}
+}
+
+class FoodTypeAndAmount
+{
+	constructor(foodDefinition, units)
+	{
+		this.foodDefinition = foodDefinition;
+		this.units = units;
+	}
+
+	kilocalories(calorieCalculator)
+	{
+		var foodDefinition = this.foodDefinition;
+		var kilocaloriesPerUnit = foodDefinition.kilocaloriesPerUnit;
+		var kilocaloriesTotal = this.units * kilocaloriesPerUnit;
+		return kilocaloriesTotal;
+	}
+
+	// DOM.
+
+	toDomElementOption()
+	{
+		var d = document;
+		var returnValue = d.createElement("option");
+		returnValue.value = this.foodDefinition.name;
+		returnValue.innerHTML = this.toString();
+		return returnValue;
+	}
+
+	// Serialization.
+
+	static fromStringAndFoodDefinitions(foodTypeAndAmountAsString, foodDefinitions)
+	{
+		var foodDefinitionNameAndRemainder =
+			foodTypeAndAmountAsString.split(", ");
+
+		var foodDefinitionName = foodDefinitionNameAndRemainder[0];
+		var foodDefinition =
+			foodDefinitions.find(x => x.name == foodDefinitionName);
+
+		var remainder = foodDefinitionNameAndRemainder[1];
+		var amountAndUnitAbbreviation = remainder.split(" ");
+		var amount = parseFloat(amountAndUnitAbbreviation[0]);
+
+		var returnValue = new FoodTypeAndAmount(foodDefinition, amount);
+
+		return returnValue;
+	}
+
+	toString()
+	{
+		var returnValue =
+			this.foodDefinition.name + ", "
+			+ this.units + " "
+			+ this.foodDefinition.unit.abbreviation;
+
+		return returnValue;
+	}
+
+	toStringWithKilocalories()
+	{
+		var returnValue = this.toString();
+
+		var kilocaloriesPerUnit =
+			this.foodDefinition.kilocaloriesPerUnit;
+
+		var totalCalories = this.kilocalories();
+
+		returnValue +=
+			" @ " + kilocaloriesPerUnit
+			+ " kcal/" + this.foodDefinition.unit.abbreviation
+			+ " = " + totalCalories + "kcal";
+
+		return returnValue;
+	}
+
+}
+
+class Meal
+{
+	constructor(foodTypesAndAmounts)
+	{
+		this.foodTypesAndAmounts = foodTypesAndAmounts || [];
+	}
+
+	toTextNutritionalSummary()
+	{
+		var summaryAsLines =
+			this.foodTypesAndAmounts.map(x => x.toStringWithKilocalories() );
+
+		var totalKilocaloriesInMeal = 0;
+		this.foodTypesAndAmounts.forEach
+		(
+			x => totalKilocaloriesInMeal += x.kilocalories()
+		);
+		summaryAsLines.push("");
+		summaryAsLines.push("Total: " + totalKilocaloriesInMeal + " kcal");
+
+		var newline = "\n";
+
+		var returnValue = summaryAsLines.join(newline);
+
+		return returnValue;
+	}
+}
+
+class MeasurementUnit
+{
+	constructor(name, abbreviation, aliases)
+	{
+		this.name = name;
+		this.abbreviation = abbreviation;
+		this.aliases = aliases;
+	}
+
+	static Instances()
+	{
+		if (this._instances == null)
+		{
+			this._instances = new MeasurementUnit_Instances();
+		}
+		return this._instances;
+	}
+
+	static byAbbreviation(abbreviation)
+	{
+		return this.Instances().byAbbreviation(abbreviation);
+	}
+
+	// DOM.
+
+	toDomElementOption()
+	{
+		var d = document;
+		var returnValue = d.createElement("option");
+		returnValue.value = this.abbreviation;
+		returnValue.innerHTML = this.name;
+		return returnValue;
+	}
+}
+
+class MeasurementUnit_Instances
+{
+	constructor()
+	{
+		this.Cup 		= new MeasurementUnit("cup", 		"c.", 		[ "cups", "c.", "cp" ] );
+		this.Gram 		= new MeasurementUnit("gram", 		"g", 		[ "g" ] );
+		this.Ounce 		= new MeasurementUnit("ounce", 		"oz.", 		[ "ounces", "oz." ] );
+		this.Piece 		= new MeasurementUnit("piece", 		"pc.", 		[ "pc.", "each", "ea." ] );
+		this.Tablespoon = new MeasurementUnit("tablespoon", "tbsp.", 	[ "tbsp.", "tbs." ] );
+		this.Teaspoon 	= new MeasurementUnit("teaspoon", 	"tsp.", 	[ "tsp." ] );
+
+		this._All =
+		[
+			this.Cup,
+			this.Gram,
+			this.Ounce,
+			this.Piece,
+			this.Tablespoon,
+			this.Teaspoon
+		];
+	}
+
+	byAbbreviation(abbreviation)
+	{
+		return this._All.find(x => x.abbreviation == abbreviation);
+	}
+}
+
+</script>
+
+</body>
+</html>
