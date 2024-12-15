@@ -168,7 +168,10 @@ function buttonFoodDefinitionAdd_Clicked()
 
 	if (isValid == false)
 	{
-		alert("All the necessary data for the new food definition was not specified, so it could not be added.");
+		var message =
+			"All the necessary data for the new food definition "
+			+ "was not specified, so it could not be added.";
+		alert(message);
 	}
 	else
 	{
@@ -469,19 +472,43 @@ class FoodDefinition_Instances
 		var fd = (n, kcpu, u, ups) => new FoodDefinition(n, kcpu, u, ups);
 
 		var units = MeasurementUnit.Instances();
+		var cup = units.Cup;
+		var ounce = units.Ounce;
+		var tablespoon = units.Tablespoon;
+		var teaspoon = units.Teaspoon;
 
-		this.Boullion_Chicken 	= fd("chicken boullion", 	5, 		units.Teaspoon, 	1);
-		this.Granola_Bar 		= fd("granola bar", 		105, 	units.Ounce, 		1.2);
-		this.Oil_Olive 			= fd("olive oil", 			120, 	units.Tablespoon, 	1);
-		this.Pasta 				= fd("pasta", 				100, 	units.Ounce, 		2);
-		this.Yogurt 			= fd("yogurt", 				12, 	units.Ounce, 		6);
+		this.Beans_Pinto 		= fd("beans, pinto, dry", 			90, 	ounce, 		2);
+		this.Beef_Ground 		= fd("beef, ground, 80% lean, raw", 70,		ounce,		1);
+		this.Boullion_Chicken 	= fd("boullion, chicken", 			5, 		teaspoon, 	1);
+		this.Broccoli 			= fd("broccoli", 					10, 	ounce, 		4);
+		this.Chicken_Breast		= fd("chicken, breast, raw", 		30, 	ounce, 		4);
+		this.Flour 				= fd("flour", 						50,		ounce, 		2);
+		this.Granola_Bar 		= fd("granola bar", 				100, 	ounce, 		1.2);
+		this.Oil_Olive 			= fd("olive oil", 					120, 	tablespoon, 1);
+		this.Pasta 				= fd("pasta", 						100, 	ounce, 		2);
+		this.Peas_Green 		= fd("peas, green, frozen",			20,		ounce,		4);
+		this.Potato 			= fd("potato", 						25, 	ounce, 		6);
+		this.Rice_White 		= fd("rice, white, dry", 			110, 	ounce, 		2);
+		this.Tomato_Sauce 		= fd("tomato sauce", 				70, 	cup,		1);
+		this.Tomatoes_Diced 	= fd("tomatoes, diced", 			10, 	ounce,		4);
+		this.Yogurt 			= fd("yogurt", 						12, 	ounce, 		6);
 
 		this._All =
 		[
+			this.Beans_Pinto,
+			this.Beef_Ground,
 			this.Boullion_Chicken,
+			this.Broccoli,
+			this.Chicken_Breast,
+			this.Flour,
 			this.Granola_Bar,
 			this.Oil_Olive,
 			this.Pasta,
+			this.Peas_Green,
+			this.Potato,
+			this.Rice_White,
+			this.Tomato_Sauce,
+			this.Tomatoes_Diced,
 			this.Yogurt
 		];
 	}
